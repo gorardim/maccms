@@ -1,3 +1,6 @@
 [submodule "template/shoutu41_theme"]
 	path = template/shoutu41_theme
 	url = git@github.com:qmarliu/shoutu41_theme.git
+[submodule "template/shoutu41"]
+	path = template/shoutu41
+	url = git@github.com:qmarliu/shoutu41_theme.git
