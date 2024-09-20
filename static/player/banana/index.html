@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>香蕉播放器</title>
+    <script src="./artplayer.js"></script>
+    <script src="./artplayer-plugin-chromecast.min.js"></script>
+    <script src="./flv.min.js"></script>
+    <script src="./hls.min.js"></script>
+    <style>
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .artplayer-app {
+            width: 100%;
+            height: 100%;
+        }
+
+        .art-layer-poster {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            opacity: 1;
+        }
+
+        .art-layer-poster img {
+            width: 200px;
+        }
+
+        @media screen and (max-width: 992px) {
+            .art-layer-poster img {
+                width: 100px;
+            }
+        }
+
+        @media screen and (max-width: 650px) {
+            .art-layer-poster {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                opacity: 1;
+            }
+
+            .art-layer-poster img {
+                width: 70px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="artplayer-app"></div>
+    <script>
+        function playM3u8(video, url, art) {
+            const extension = url.split('.').pop().toLowerCase();
+            if (extension === 'mp4') {
+                video.src = url;
+            } else if (extension === 'flv') {
+                if (flvjs.isSupported()) {
+                    console.log('FLV.js is supported');  // 检查是否支持 FLV
+                    if (art.flv) art.flv.destroy();
+                    const flvPlayer = flvjs.createPlayer({
+                        type: 'flv',
+                        url: url,
+                    });
+                    flvPlayer.attachMediaElement(video);
+                    flvPlayer.load();
+                    flvPlayer.play().then(() => {
+                        console.log('FLV stream is playing');  // 确认播放启动
+                    }).catch(error => {
+                        console.error('FLV stream play failed:', error);  // 捕获播放失败
+                    });
+                    art.flv = flvPlayer;
+                    art.on("destroy", () => flvPlayer.destroy());
+                } else {
+                    art.notice.show = "Unsupported playback format: FLV";
+                    console.error('FLV.js is not supported');  // 输出不支持的错误信息
+                }
+            } else {
+                if (Hls.isSupported()) {
+                    if (art.hls) art.hls.destroy();
+                    const hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    art.hls = hls;
+                    art.on("destroy", () => hls.destroy());
+                } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+                    video.src = url;
+                } else {
+                    art.notice.show = "Unsupported playback format: m3u8";
+                }
+            }
+        }
+
+        function getUrlParam(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)"); //构造一个含有目标参数的正则表达式对象
+            var r = window.location.search.substr(1).match(reg); //匹配目标参数
+            if (r != null) return unescape(r[2]);
+            return null; //返回参数值
+        }
+        var urltext = getUrlParam("url");
+        var isLive = getUrlParam("live") === "1" || false;
+        // var img = getUrlParam("img");
+        var art = new Artplayer({
+            container: ".artplayer-app",
+            url: urltext || "",
+            type: "m3u8",
+            lang: "zh",
+            layers: [
+                {
+                    name: "poster",
+                    html: `<img src="/logo.png">`,
+                },
+            ],
+            orientation: "auto",
+            i18n: {
+                zh: {
+                    "Video Info": "统计信息",
+                    Close: "关闭",
+                    "Video Load Failed": "加载失败",
+                    Volume: "音量",
+                    Play: "播放",
+                    Pause: "暂停",
+                    Rate: "速度",
+                    Mute: "静音",
+                    "Video Flip": "画面翻转",
+                    Horizontal: "水平",
+                    Vertical: "垂直",
+                    Reconnect: "重新连接",
+                    "Show Setting": "显示设置",
+                    "Hide Setting": "隐藏设置",
+                    Screenshot: "截图",
+                    "Play Speed": "播放速度",
+                    "Aspect Ratio": "画面比例",
+                    Default: "默认",
+                    Normal: "正常",
+                    Open: "打开",
+                    "Switch Video": "切换",
+                    "Switch Subtitle": "切换字幕",
+                    Fullscreen: "全屏",
+                    "Exit Fullscreen": "退出全屏",
+                    "Web Fullscreen": "网页全屏",
+                    "Exit Web Fullscreen": "退出网页全屏",
+                    "Mini Player": "迷你播放器",
+                    "PIP Mode": "开启画中画",
+                    "Exit PIP Mode": "退出画中画",
+                    "PIP Not Supported": "不支持画中画",
+                    "Fullscreen Not Supported": "不支持全屏",
+                    "Subtitle Offset": "字幕偏移",
+                    "Last Seen": "上次看到",
+                    "Jump Play": "跳转播放",
+                    AirPlay: "隔空播放",
+                    "AirPlay Not Available": "隔空播放不可用",
+                },
+            },
+            customType: {
+                m3u8: playM3u8,
+            },
+            // poster: '',浏览器背景图片
+            volume: 0.5,
+            isLive: isLive,
+            muted: false, // 如果用不静音，是无法自动播放的。
+            autoplay: true,
+            pip: true,
+            autoMini: true,
+            screenshot: true,
+            setting: true,
+            loop: true,
+            flip: true,
+            playbackRate: true,
+            aspectRatio: true,
+            fullscreen: true,
+            miniProgressBar: false,
+            mutex: true,
+            backdrop: true,
+            playsInline: true,
+            autoPlayback: true,
+            airplay: true,
+            theme: "#FF6429",
+            moreVideoAttr: {
+                crossOrigin: "anonymous",
+            },
+            icons: {
+                state: '<img width="150" heigth="150" src="https://artplayer.org/assets/img/state.svg">',
+                indicator:
+                    '<img width="16" heigth="16" src="https://artplayer.org/assets/img/indicator.svg">',
+            },
+            plugins: [
+                artplayerPluginChromecast({
+                    // sdk: '', // The URL of the Cast SDK
+                    // mimeType: '', // The MIME type of the media
+                }),
+            ],
+        });
+
+        art.on("resize", () => {
+            if (art.fullscreen) {
+                // art.flip = "horizontal";
+                makeLandScape();
+            } else {
+                art.flip = "normal";
+            }
+        });
+
+        function makeLandScape() {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock("landscape");
+            }
+        }
+    </script>
+</body>
+
+</html>
